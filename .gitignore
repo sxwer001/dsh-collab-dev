@@ -1,0 +1,8 @@
+node_modules/
+.test-runtime/
+.scratch/
+*.tgz
+.collab-dev/
+.agent-teams/
+REAL_MODEL_VERIFICATION.json
+DELIVERY_VERIFICATION.json

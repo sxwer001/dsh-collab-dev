@@ -1,0 +1,67 @@
+[
+  {
+    "insert": [
+      {
+        "id": "agent-teams",
+        "name": "@nanmicoder/dsh-agent-teams",
+        "config": {
+          "stateDir": ".agent-teams",
+          "memberProvider": "spawn",
+          "memberMaxDepth": 0,
+          "maxMembers": 4,
+          "toolPolicies": {
+            "collab-member": {
+              "deny": [
+                "collab_dev_plan",
+                "collab_dev_start"
+              ]
+            }
+          },
+          "profiles": {
+            "collab-dev": {
+              "description": "主智能体规划架构，两个原生 worker 按依赖并行编码，独立验证和审查后集成交付。",
+              "taskPlanning": "captain",
+              "protocol": "Main agent defines the architecture and interfaces first. Execute only a complete quality DAG. Parallel implementation must have disjoint inScope paths. Requirements -> implementation -> verification -> independent review -> integration. Treat the main agent's saved ARCHITECTURE.md as the shared contract.",
+              "executionPrompt": "Follow the saved architecture, your current task contract and attempt_id. Use the smallest standard-library solution. Work only the assigned task and declared paths. Run actual verification; report failed commands and blockers honestly. Do not change tests to hide failures. Do not dispatch further agents. Implementation does not certify its own review. First completion uses agent_teams_update_task with task_id, attempt_id, status=completed and output; implementation/verification/integration require acceptanceResults and commandsRun, implementation also changedPaths, requirements/review require verdict=pass. Do not include evidence_note on first completion: it only supplements a task that is already terminal. Once the current contract checks pass, submit completion immediately; repeat checks only after changes or failures. Report once, then become idle.",
+              "reviewPolicy": {
+                "requirementsMinRounds": 1,
+                "requirementsMaxRounds": 2,
+                "codeMaxRounds": 2,
+                "maxRepairAttempts": 2,
+                "requiredReviewers": [
+                  "reviewer"
+                ]
+              },
+              "members": [
+                {
+                  "name": "worker-a",
+                  "role": "Implement assigned modules and shared framework tasks minimally; preserve interfaces.",
+                  "tool_policy": "collab-member"
+                },
+                {
+                  "name": "worker-b",
+                  "role": "Implement independent modules in the declared write scope; preserve interfaces.",
+                  "tool_policy": "collab-member"
+                },
+                {
+                  "name": "verifier",
+                  "role": "Run the real validation commands and report exit codes; do not rewrite product code or tests to manufacture a pass.",
+                  "tool_policy": "collab-member"
+                },
+                {
+                  "name": "reviewer",
+                  "role": "Review architecture and actual implementation independently; report concrete findings and pass only verified contracts.",
+                  "tool_policy": "collab-member"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "collab-dev",
+        "name": "dsh-collab-dev"
+      }
+    ]
+  }
+]

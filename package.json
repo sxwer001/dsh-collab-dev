@@ -1,0 +1,82 @@
+{
+  "name": "dsh-collab-dev",
+  "version": "0.1.1",
+  "description": "Plan architecture, delegate independent coding tasks, verify and review with native DSH AgentTeams.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sxwer001/dsh-collab-dev.git"
+  },
+  "homepage": "https://github.com/sxwer001/dsh-collab-dev#readme",
+  "bugs": {
+    "url": "https://github.com/sxwer001/dsh-collab-dev/issues"
+  },
+  "engines": {
+    "node": ">=22.19.0",
+    "dsh": "0.2.0-rc.2"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "multi-agent",
+    "collaborative-development"
+  ],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "examples",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "compatibility.json",
+    "VERIFICATION.json",
+    "scripts/patch-agent-teams.mjs"
+  ],
+  "dependencies": {
+    "@nanmicoder/dsh-agent-teams": "0.1.23"
+  },
+  "bundleDependencies": ["@nanmicoder/dsh-agent-teams"],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-commands": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-commands": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-system-prompt": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "check": "node --check src/index.js && node --check src/plan.js",
+    "test": "node --test test/*.test.mjs",
+    "test:runtime": "node scripts/runtime-check.mjs",
+    "prepare:runtime": "node scripts/prepare-runtime.mjs",
+    "prepack": "node scripts/patch-agent-teams.mjs && npm run check && npm test"
+  }
+}

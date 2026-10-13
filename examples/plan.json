@@ -1,0 +1,137 @@
+{
+  "goal": "为已有应用增加互相独立的订单 API 与订单页面。",
+  "architecture": "主智能体确定框架：后端模块 src/server/orders 与前端模块 src/client/orders。GET /api/orders 返回 {items,total,page,pageSize}；错误统一 {code,message}。两模块共用已确定的接口定义；现有共享类型和 lockfile 由串行骨架任务处理。以下命令必须根据实际项目修改并预检。",
+  "constraints": [
+    "保持现有 public API 兼容",
+    "不修改 unrelated 模块",
+    "不提交 推送或部署"
+  ],
+  "tasks": [
+    {
+      "id": "requirements",
+      "kind": "requirements",
+      "assignee": "reviewer",
+      "subject": "审查架构与验收合同",
+      "objective": "确认模块边界、接口和真实验收命令完整。",
+      "dependencies": [],
+      "acceptance": [
+        "接口覆盖正常 分页 无结果与错误状态"
+      ]
+    },
+    {
+      "id": "api",
+      "kind": "implementation",
+      "assignee": "worker-a",
+      "subject": "实现订单 API",
+      "objective": "按架构合同实现查询接口。",
+      "dependencies": [
+        "requirements"
+      ],
+      "inScope": [
+        "src/server/orders"
+      ],
+      "acceptance": [
+        "分页和错误格式符合合同"
+      ],
+      "verify": [
+        "npm run test:orders"
+      ]
+    },
+    {
+      "id": "ui",
+      "kind": "implementation",
+      "assignee": "worker-b",
+      "subject": "实现订单页面",
+      "objective": "按共同接口合同实现页面。",
+      "dependencies": [
+        "requirements"
+      ],
+      "inScope": [
+        "src/client/orders"
+      ],
+      "acceptance": [
+        "覆盖加载 无结果和错误状态"
+      ],
+      "verify": [
+        "npm run test:orders-ui"
+      ]
+    },
+    {
+      "id": "verify-api",
+      "kind": "verification",
+      "assignee": "verifier",
+      "subject": "复验订单 API",
+      "objective": "在实际文件上运行验证并记录退出码。",
+      "dependencies": [
+        "api"
+      ],
+      "acceptance": [
+        "声明的 API 测试全部通过"
+      ],
+      "verify": [
+        "npm run test:orders"
+      ]
+    },
+    {
+      "id": "verify-ui",
+      "kind": "verification",
+      "assignee": "verifier",
+      "subject": "复验订单页面",
+      "objective": "在实际文件上运行页面验证并记录退出码。",
+      "dependencies": [
+        "ui"
+      ],
+      "acceptance": [
+        "声明的 UI 测试全部通过"
+      ],
+      "verify": [
+        "npm run test:orders-ui"
+      ]
+    },
+    {
+      "id": "review-api",
+      "kind": "review",
+      "assignee": "reviewer",
+      "subject": "独立审查 API",
+      "objective": "对照合同和实际 diff 审查 API。",
+      "dependencies": [
+        "verify-api"
+      ],
+      "reviewedTaskId": "api",
+      "acceptance": [
+        "没有必须修复的 blocker 或 high finding"
+      ]
+    },
+    {
+      "id": "review-ui",
+      "kind": "review",
+      "assignee": "reviewer",
+      "subject": "独立审查页面",
+      "objective": "对照合同和实际 diff 审查页面。",
+      "dependencies": [
+        "verify-ui"
+      ],
+      "reviewedTaskId": "ui",
+      "acceptance": [
+        "没有必须修复的 blocker 或 high finding"
+      ]
+    },
+    {
+      "id": "integration",
+      "kind": "integration",
+      "assignee": "worker-a",
+      "subject": "最终集成与交付",
+      "objective": "主智能体汇总已验收成果，成员执行端到端检查。",
+      "dependencies": [
+        "review-api",
+        "review-ui"
+      ],
+      "acceptance": [
+        "完整订单流程通过真实端到端验收"
+      ],
+      "verify": [
+        "npm run test:orders-e2e"
+      ]
+    }
+  ]
+}

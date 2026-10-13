@@ -1,0 +1,61 @@
+{
+  "checkedDate": "2026-10-12",
+  "platform": "Windows",
+  "node": "24.15.0",
+  "host": "0.2.0-rc.2",
+  "agentTeams": {
+    "version": "0.1.23",
+    "source": "published npm package, bundled with a documented one-line requirements binding fix",
+    "npmShasum": "abd18841e042d85e3790a2c693c70f3864bf2e47"
+  },
+  "unitTestGroups": 5,
+  "runtime": [
+    {
+      "scenario": "success",
+      "passed": true,
+      "realHarness": "0.2.0-rc.2",
+      "agentTeams": "0.1.23",
+      "scriptedModel": true,
+      "concurrentWorkers": 2,
+      "traceSha256": "60f590efcfee61e4a5f8c4d851fdb4ab635b4e1e79e3eea7acf641d04c89ea04"
+    },
+    {
+      "scenario": "failure",
+      "passed": true,
+      "realHarness": "0.2.0-rc.2",
+      "agentTeams": "0.1.23",
+      "scriptedModel": true,
+      "concurrentWorkers": 2,
+      "traceSha256": "45321621f694660ff8697f6dfdfecb7a05ccfb9cf4cd1f2f7badeb7f98609e29"
+    }
+  ],
+  "checkedSurfaces": [
+    "native slash command",
+    "saved plan and architecture",
+    "complete staged quality DAG",
+    "no child before approval",
+    "native worker concurrency",
+    "actual file writes and Node checks",
+    "independent review and integration",
+    "failed command blocks integration",
+    "member tool restrictions",
+    "upstream client module discovery",
+    "native status tool"
+  ],
+  "limitations": [
+    "Single real-model sample; no speed benchmark",
+    "No browser visual QA",
+    "Worktree not implemented"
+  ],
+  "evidenceDirectory": ".scratch/runtime-1791802560228",
+  "realModel": {
+    "provider": "opencode-go",
+    "model": "deepseek-v4.1-flash",
+    "tasks": 8,
+    "deliveryTestsPassed": 26,
+    "extraAcceptanceChecks": 46,
+    "workerOverlapMs": 69419,
+    "coldResume": true,
+    "requirementsSnapshotBinding": true
+  }
+}
