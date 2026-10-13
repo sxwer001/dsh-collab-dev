@@ -28,11 +28,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-# Local compatibility fix
+# Local compatibility fixes
 
-The bundled AgentTeams 0.1.23 has one local change in `bindReviewToRevision`:
-a requirements verdict without an implementation target binds its own contract
-and immutable architecture/plan artifacts. The original function otherwise
-returns early and cannot record the reviewed bytes. Scheduling, permissions,
-attempt ownership and other quality gates are unchanged. The reproducible patch
-is `scripts/patch-agent-teams.mjs`; the original MIT notice above still applies.
+The bundled AgentTeams 0.1.23 has two local changes:
+
+- `bindReviewToRevision` binds a requirements verdict without an implementation
+  target to its own contract and immutable architecture/plan artifacts. The original
+  function returns early and cannot record the reviewed bytes.
+- `approveStagedTeam` checks the expected task count stored in a Collab-Dev team's
+  description before approving it, through either the native UI or tool. This
+  prevents an interrupted plan upload from starting a partial team. Older teams
+  without this count and other profiles retain their original behavior.
+
+The reproducible patch is `scripts/patch-agent-teams.mjs`; the original MIT notice
+above still applies. Native permissions, attempt ownership and delivery gates are
+preserved.

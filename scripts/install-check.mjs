@@ -6,6 +6,7 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const version = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version;
+const target = process.argv[2] ?? path.join(root, `dsh-collab-dev-${version}.tgz`);
 const base = path.join(root, '.scratch', 'install-' + Date.now());
 const home = path.join(base, 'home');
 await mkdir(home, { recursive: true });
@@ -25,7 +26,7 @@ async function command(args, label) {
   assert.equal(code, 0, `${label} failed`);
   return stdout;
 }
-await command(['plugin', '--profile', 'collab-check', 'add', path.join(root, `dsh-collab-dev-${version}.tgz`)], 'install');
+await command(['plugin', '--profile', 'collab-check', 'add', target], 'install');
 const profile = path.join(home, 'profiles/collab-check');
 const manifest = JSON.parse(await readFile(path.join(profile, 'package.json'), 'utf8'));
 assert.ok(manifest.dsh.profile.bundles.includes('dsh-collab-dev'));
@@ -38,6 +39,10 @@ const installed = JSON.parse(await readFile(path.join(directory, 'package.json')
 assert.equal(installed.version, version);
 assert.equal(await readFile(entry, 'utf8'), await readFile(path.join(root, 'src/index.js'), 'utf8'));
 assert.equal(await readFile(path.join(directory, 'src/plan.js'), 'utf8'), await readFile(path.join(root, 'src/plan.js'), 'utf8'));
+assert.equal(await readFile(path.join(directory, 'src/status.js'), 'utf8'), await readFile(path.join(root, 'src/status.js'), 'utf8'));
+const dependency = path.join(directory, 'node_modules/@nanmicoder/dsh-agent-teams/lib');
+assert.match(await readFile(path.join(dependency, 'quality-gates.js'), 'utf8'), /taskKindOf\(task\) === 'requirements' \? task : undefined/);
+assert.match(await readFile(path.join(dependency, 'tools.js'), 'utf8'), /协作计划尚未完整创建，不能批准运行/);
 await writeFile(path.join(base, 'result.json'), JSON.stringify({ passed: true, profile, packageDirectory: directory,
   version: installed.version, dependency: installed.dependencies['@nanmicoder/dsh-agent-teams'] }, null, 2));
 console.log('INSTALL_CHECK_OK ' + base);

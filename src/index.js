@@ -3,7 +3,8 @@ import path from 'node:path';
 import runtimePackage from '@deepseek-ai/dsh-tools/package.json' with { type: 'json' };
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm';
-import { savePlan, loadPlan, taskArguments, MEMBERS } from './plan.js';
+import { savePlan, loadPlan, taskArguments, requireMainSession, MEMBERS } from './plan.js';
+import { summarizeStatus, renderStatus } from './status.js';
 
 export const name = 'collab-dev';
 export const inject = ['tools', 'systemPrompt'];
@@ -23,11 +24,20 @@ Common interfaces, global configuration and lockfiles must be handled serially; 
 When two implementation scopes overlap, the later task must directly depend on the earlier implementation, even if another dependency already connects them.
 After saving a valid plan, collab_dev_start creates the complete STAGED team. Show the plan and yield for the native Approve & Run action.
 Do not approve in the same planning turn. After approval, the upstream scheduler starts ready members automatically.
-Use agent_teams_status after reports or user requests; use the native team panel to inspect, stop or resume.
+Use collab_dev_status after reports or user requests to summarize native progress and verification/integration results; use the native team panel to inspect, stop or resume.
 Do not claim completion from a closing message or idle state. Require actual checks, independent review and final integration.
 Reuse the current team and its attempt_id; never duplicate the scheduler or directly edit .agent-teams files.
-Member tool policies deny collab_dev_plan and collab_dev_start. The first release uses a shared workspace and completion audits, not a filesystem sandbox.
+Member tool policies deny collab_dev_plan, collab_dev_start and collab_dev_status. This version uses a shared workspace and completion audits, not a filesystem sandbox.
 Do not commit, push, publish or deploy unless that action was authorized by the user.`;
+
+async function invokeTool(ctx, exec, name, args) {
+  exec.signal.throwIfAborted();
+  const callId = ToolCallId(`collab-${randomUUID()}`);
+  const result = await ctx.tools.execute({ name, arguments: args, agent: exec.agent, signal: exec.signal,
+    callId, rootCallId: exec.rootCallId ?? callId, parent: exec.token });
+  if (result.isError) throw new Error(`${name}: ${result.error?.message ?? '执行失败'}`);
+  return result.value;
+}
 
 export function apply(ctx) {
   if (runtimePackage.version !== '0.2.0-rc.2') throw new Error('dsh-collab-dev 仅验证了 DSH 0.2.0-rc.2，请使用对应宿主版本。');
@@ -62,16 +72,9 @@ export function apply(ctx) {
       starting.add(exec.agent.id);
       let team;
       try {
-        let seq = 0;
-        const invoke = async (name, args) => {
-          exec.signal.throwIfAborted();
-          const result = await ctx.tools.execute({ name, arguments: args, agent: exec.agent, signal: exec.signal,
-            callId: ToolCallId(`collab-${randomUUID()}-${++seq}`), rootCallId: exec.rootCallId, parent: exec.token });
-          if (result.isError) throw new Error(`${name}: ${result.error?.message ?? '执行失败'}`);
-          return result.value;
-        };
+        const invoke = (name, args) => invokeTool(ctx, exec, name, args);
         team = await invoke('agent_teams_create', { name: 'collab-' + args.plan_id, profile: 'collab-dev',
-          approval: 'required', description: `${plan.goal}\n\n架构合同和计划：${directory}\n\n${plan.architecture}` });
+          approval: 'required', description: `协作计划：${plan.tasks.length} 项任务\n${plan.goal}\n\n架构合同和计划：${directory}\n\n${plan.architecture}` });
         const ids = Object.create(null);
         for (const task of plan.tasks) {
           const input = taskArguments(task, ids);
@@ -90,14 +93,34 @@ export function apply(ctx) {
     },
   }));
 
+  ctx.tools.register(defineTool({
+    name: 'collab_dev_status', description: 'Summarize native team progress, verification/integration task results and delivery blockers. Main-session only. Native status may wake already approved work; it never approves a staged plan or resumes a halted team.',
+    parameters: {},
+    output: { schema: jsonOutput, render: (_args, value) => [{ type: 'text', text: renderStatus(value) }] },
+    async execute(_args, exec) {
+      requireMainSession(exec.agent);
+      return summarizeStatus(await invokeTool(ctx, exec, 'agent_teams_status', {}));
+    },
+  }));
+
   ctx.inject(['commands'], commandCtx => {
     commandCtx.commands.register({ name: 'collab-dev', description: '主智能体制定架构与计划，再协作开发', input: { hint: '<开发目标>' },
       handler(invocation) {
+        requireMainSession(invocation.agent);
+        invocation.signal.throwIfAborted();
         const goal = invocation.rawInput.trim();
         if (!goal || goal.length > 4000) return { kind: 'error', text: '用法：/collab-dev <开发目标，最多 4000 字符>' };
         invocation.agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text',
           text: `请使用 collab-dev 协作开发完成以下目标。先检查项目并制定架构和完整任务计划，用 collab_dev_plan 保存，再用 collab_dev_start 创建团队草稿供我查看。\n\n目标：${goal}` }] }));
         return { kind: 'success', text: '主智能体将先制定架构与协作计划。' };
+      },
+    });
+    commandCtx.commands.register({ name: 'collab-status', description: '查看协作进度、验证结果和交付阻塞',
+      async handler(invocation) {
+        if (invocation.rawInput.trim()) return { kind: 'error', text: '用法：/collab-status' };
+        requireMainSession(invocation.agent);
+        const summary = await invokeTool(ctx, invocation, 'collab_dev_status', {});
+        return { kind: 'success', text: renderStatus(summary) };
       },
     });
   });

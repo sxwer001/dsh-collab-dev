@@ -86,6 +86,9 @@ export function apply(ctx) {
     const staged = state();
     assert.equal(staged?.phase, 'staged'); assert.equal(staged.tasks.length, 8);
     assert.ok(staged.members.every(member => !member.id), 'Planning must not start children');
+    const stagedStatus = await ctx.commands.execute(handle.agent, '/collab-status', [], new AbortController().signal);
+    assert.equal(stagedStatus?.result.kind, 'success');
+    assert.match(stagedStatus.result.text, /等待批准/);
     writeFileSync(path.join(base, 'captain-plan.md'), transcript()); log({ event: 'staged', team: staged.id, tasks: staged.tasks.length, noMembersStarted: true });
     console.log('LIVE_PLAN_STAGED');
     await send('用户已授权此次真实模型测试。现在批准这份完整团队计划，请调用 agent_teams_approve 运行。之后等待成员执行，仅用原生工具协调并修复阻塞；不要替 worker 编写产品模块，也不要取消测试、降低标准或虚报结果。');
@@ -107,7 +110,12 @@ export function apply(ctx) {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     assert.ok(final.tasks.some(task => task.kind === 'integration' && task.status === 'completed'), 'Integration did not complete');
-    await send('请调用 agent_teams_status 核对结果，然后在 TEST_SUMMARY.md 写测试汇总：列明主智能体架构文件、两个并行 worker 的实际改动、真实执行的测试命令与退出码、审查和修复结果。亲自重跑 npm test 与 npm run smoke，失败继续协调修复。只报告有证据的结论。');
+    await send('请调用 collab_dev_status 核对结果，然后在 TEST_SUMMARY.md 写测试汇总：列明主智能体架构文件、两个并行 worker 的实际改动、真实执行的测试命令与退出码、审查和修复结果。亲自重跑 npm test 与 npm run smoke，失败继续协调修复。只报告有证据的结论。');
+    const status = await ctx.commands.execute(handle.agent, '/collab-status', [], new AbortController().signal);
+    assert.equal(status?.result.kind, 'success');
+    assert.match(status.result.text, /可交付/);
+    writeFileSync(path.join(base, 'status-summary.txt'), status.result.text);
+    final = state();
     writeFileSync(path.join(base, 'captain-summary.md'), transcript());
     const testOutput = execFileSync(process.execPath, ['--test', ...readdirSync(path.join(process.cwd(), 'test')).filter(file => file.endsWith('.test.js')).map(file => 'test/' + file)], { encoding: 'utf8', cwd: process.cwd(), timeout: 60_000 });
     const smokeOutput = execFileSync(process.execPath, ['smoke.js'], { encoding: 'utf8', cwd: process.cwd(), timeout: 30_000 });

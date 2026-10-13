@@ -13,7 +13,8 @@
             "collab-member": {
               "deny": [
                 "collab_dev_plan",
-                "collab_dev_start"
+                "collab_dev_start",
+                "collab_dev_status"
               ]
             }
           },

@@ -59,10 +59,10 @@ class FixtureAdapter extends LlmAdapter {
       if (phase === 'approve' && rootStep++ === 0) {
         yield* call('agent_teams_approve', { confirmation: 'The user explicitly approves this fixture plan now.' }); return;
       }
-      if (phase === 'status' && rootStep++ === 0) { yield* call('agent_teams_status', {}); return; }
+      if (phase === 'status' && rootStep++ === 0) { yield* call('collab_dev_status', {}); return; }
       yield* chunks('CAPTAIN_YIELDED'); return;
     }
-    assert.ok(!options.tools.some(tool => ['collab_dev_plan', 'collab_dev_start'].includes(tool.name)), 'Member must not create teams or plans');
+    assert.ok(!options.tools.some(tool => ['collab_dev_plan', 'collab_dev_start', 'collab_dev_status'].includes(tool.name)), 'Member must not use captain collaboration tools');
     const snapshot = state();
     const member = snapshot.members.find(item => item.id === options.sessionId);
     assert.ok(member, options.sessionId);
@@ -134,6 +134,22 @@ export function apply(ctx) {
     ctx.effect(() => () => handle.dispose());
     await handle.agent.whenIdle();
     const send = async text => { handle.agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })); await handle.agent.whenIdle(); };
+    const invoke = (name, args) => ctx.tools.execute({ name, arguments: args, agent: handle.agent,
+      signal: new AbortController().signal, callId: ToolCallId('regression-' + randomUUID()) });
+    const partial = await invoke('agent_teams_create', { name: 'incomplete-' + randomUUID(), profile: 'collab-dev',
+      approval: 'required', description: '协作计划：8 项任务\nIncomplete-plan regression' });
+    assert.equal(partial.isError, false);
+    const requirement = fixturePlan().tasks[0];
+    const task = await invoke('agent_teams_create_task', { subject: requirement.subject, kind: requirement.kind,
+      assignee: requirement.assignee, objective: requirement.objective, acceptance: requirement.acceptance });
+    assert.equal(task.isError, false);
+    const premature = await invoke('agent_teams_approve', { confirmation: 'Test user intentionally attempts to approve an incomplete plan.' });
+    assert.equal(premature.isError, true);
+    assert.match(premature.error.message, /尚未完整创建/);
+    const partialState = JSON.parse(readFileSync(join(partial.value.state_dir, 'team.json'), 'utf8'));
+    assert.equal(partialState.phase, 'staged'); assert.ok(partialState.members.every(member => !member.id));
+    assert.equal((await invoke('agent_teams_delete', {})).isError, false);
+    log({ event: 'partial-approval-blocked' });
     const activated = await ctx.commands.execute(handle.agent, '/collab-dev Build two independent modules', [], new AbortController().signal);
     assert.equal(activated?.result.kind, 'success');
     await handle.agent.whenIdle();
@@ -141,6 +157,12 @@ export function apply(ctx) {
     assert.equal(staged.phase, 'staged'); assert.equal(staged.tasks.length, 8); assert.equal(staged.members.length, 4);
     assert.ok(staged.members.every(member => !member.id), 'No child may spawn during planning');
     log({ event: 'staged', tasks: staged.tasks.length, noMembersStarted: true });
+    const stagedStatus = await ctx.commands.execute(handle.agent, '/collab-status', [], new AbortController().signal);
+    assert.equal(stagedStatus.result.kind, 'success', stagedStatus.result.text);
+    assert.match(stagedStatus.result.text, /等待批准/);
+    assert.ok(state().members.every(member => !member.id));
+    const duplicate = await invoke('collab_dev_start', { plan_id: planId });
+    assert.equal(duplicate.isError, true); assert.equal(state().tasks.length, 8);
     phase = 'approve'; rootStep = 0;
     await send('I explicitly approve the completed fixture plan. Run it now.');
     const deadline = Date.now() + 45_000;
@@ -161,6 +183,14 @@ export function apply(ctx) {
     }
     phase = 'status'; rootStep = 0;
     await send('Please inspect the current team and summarize the verified outcome.');
+    const result = await invoke('collab_dev_status', {});
+    assert.equal(result.isError, false);
+    assert.equal(result.value.deliverable, process.env.COLLAB_SCENARIO === 'success');
+    assert.ok(result.value.tests.some(task => task.kind === 'integration'));
+    const humanStatus = await ctx.commands.execute(handle.agent, '/collab-status', [], new AbortController().signal);
+    assert.equal(humanStatus.result.kind, 'success', humanStatus.result.text);
+    assert.match(humanStatus.result.text, /验证与集成任务/);
+    log({ event: 'status-summary', deliverable: result.value.deliverable, tests: result.value.tests.length });
     assert.equal(errors.length, 0, 'No model turn may fail silently');
     await handle.agent.whenIdle();
     await ctx.sessions.flush(handle.agent.session);

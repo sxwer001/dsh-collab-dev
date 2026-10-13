@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "plugin": "0.1.1",
+  "plugin": "1.0.0",
   "host": "0.2.0-rc.2",
   "agentTeams": "0.1.23",
   "mode": "shared-workspace",
   "developmentPrinciple": "Ponytail full",
   "worktrees": false,
-  "verification": "See README for the actual test scope.",
-  "agentTeamsPatch": "requirements-contract-binding"
+  "verification": "VERIFICATION.json",
+  "agentTeamsPatches": ["requirements-contract-binding", "complete-staged-plan-approval"]
 }

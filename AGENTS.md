@@ -4,7 +4,7 @@ Use the installed Ponytail entry workflow and ponytail full for this project,
 as requested by the user. Reuse NanmiCoder AgentTeams 0.1.23 and the public
 DSH 0.2.0-rc.2 APIs. Do not duplicate the team scheduler, mailboxes or UI.
 Preserve validation, cancellation, ownership and quality gates.
-Bundle the documented one-line AgentTeams requirements snapshot fix; do not
+Bundle the documented AgentTeams requirements snapshot and complete-plan approval fixes; do not
 patch shared dependency installations or conceal historical gate warnings.
 
 Use isolated task-owned workspaces for tests. The user explicitly authorized

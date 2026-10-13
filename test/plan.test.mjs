@@ -45,10 +45,21 @@ test('review must be independent, verified and included in final integration', (
   assert.throws(() => validatePlan(omitted), /最终集成|纳入最终集成/);
   const fake = copy(); fake.tasks[1].verify = [];
   assert.throws(() => validatePlan(fake), /真实验证命令/);
+  const emptyVerification = copy(); emptyVerification.tasks[3].verify = [];
+  assert.throws(() => validatePlan(emptyVerification), /真实验证命令/);
+  const orphan = copy(); orphan.tasks.push({ ...orphan.tasks[3], id: 'unused-check' });
+  assert.throws(() => validatePlan(orphan), /所有任务/);
+  const twoFinals = copy(); twoFinals.tasks.push({ ...twoFinals.tasks.at(-1), id: 'another-final' });
+  assert.throws(() => validatePlan(twoFinals), /只有一个/);
+  const invalidReference = copy(); invalidReference.tasks[0].reviewedTaskId = 'api';
+  assert.throws(() => validatePlan(invalidReference), /只有独立审查/);
+  const invalidId = copy(); invalidId.tasks[0].id = ['requirements'];
+  assert.throws(() => validatePlan(invalidId), /任务 id/);
+  assert.throws(() => validatePlan(null), /对象/);
 });
 
 test('write scopes reject traversal, drive paths and protected directories', () => {
-  for (const scope of ['../other', '/tmp/file', 'C:/secret', 'src/../../other', '.git/config', '.env', 'node_modules/pkg', '.collab-dev/plan', 'src\\module', './src', 'src/**', 'src/module.', 'src/module /file']) {
+  for (const scope of ['../other', '/tmp/file', 'C:/secret', 'src/../../other', '.git/config', '.env', 'node_modules/pkg', '.collab-dev/plan', 'src\\module', './src', 'src/**', 'src/module.', 'src/module /file', 'src/NUL.txt', 'src/com1', 'src/part|name', 'src/<file>']) {
     const plan = copy(); plan.tasks[1].inScope = [scope];
     assert.throws(() => validatePlan(plan), /修改范围/);
   }

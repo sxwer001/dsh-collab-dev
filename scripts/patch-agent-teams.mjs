@@ -1,4 +1,4 @@
-// Bundle the pinned dependency with one documented correctness fix; never mutate a shared install.
+// Bundle documented correctness fixes; never mutate a shared dependency install.
 import { readFile, realpath, writeFile, rename } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -17,3 +17,19 @@ if (!source.includes(fixed)) {
   await rename(file + '.collab.tmp', file);
 }
 console.log('AgentTeams requirements snapshot fix ready for bundling.');
+const toolsFile = path.join(path.dirname(manifest), 'lib/tools.js');
+const before = '            requireStagedTeam(fresh);\n            // A staged removal';
+const after = `            requireStagedTeam(fresh);
+            // Collab-Dev stages quality tasks sequentially. Never approve a partial upload.
+            const collabCount = /^协作计划：(\\d+) 项任务\\n/.exec(fresh.description ?? '');
+            if (fresh.profile?.name === 'collab-dev' && collabCount && fresh.tasks.length !== Number(collabCount[1])) {
+                throw new Error('协作计划尚未完整创建，不能批准运行；请检查草稿或丢弃后重新创建。');
+            }
+            // A staged removal`;
+const toolsSource = await readFile(toolsFile, 'utf8');
+if (!toolsSource.includes(after)) {
+  if (toolsSource.split(before).length !== 2) throw new Error('Unexpected approval source; do not apply this patch blindly');
+  await writeFile(toolsFile + '.collab.tmp', toolsSource.replace(before, after));
+  await rename(toolsFile + '.collab.tmp', toolsFile);
+}
+console.log('AgentTeams incomplete Collab-Dev plan approval guard ready for bundling.');

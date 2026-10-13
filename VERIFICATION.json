@@ -1,14 +1,23 @@
 {
-  "checkedDate": "2026-10-12",
+  "plugin": "1.0.0",
+  "checkedDate": "2026-10-13",
   "platform": "Windows",
   "node": "24.15.0",
   "host": "0.2.0-rc.2",
   "agentTeams": {
     "version": "0.1.23",
-    "source": "published npm package, bundled with a documented one-line requirements binding fix",
+    "source": "published npm package with two documented compatibility fixes",
     "npmShasum": "abd18841e042d85e3790a2c693c70f3864bf2e47"
   },
-  "unitTestGroups": 5,
+  "unitTestGroups": 7,
+  "cleanSourceBuild": true,
+  "isolatedNativeInstall": true,
+  "runtimeSourceSha256": {
+    "src/index.js": "ef074c00e962cb0282588b25cebaa5b39027295ddf3f5d2ffc3703c16479c3f2",
+    "src/plan.js": "f85c4113ff2d35dbceb3f7262ccb42b8ac35b6bdd7db3cd86265f9588a7078e1",
+    "src/status.js": "3373d0626f660f47be5a3700af1ef3f2aef764d9f798df383033ce9d5eb29bce",
+    "cordis.patch.yml": "c2f7776080572b499d08d26796371a0b9ed251426f05513eb6139b68c1471d5c"
+  },
   "runtime": [
     {
       "scenario": "success",
@@ -17,7 +26,7 @@
       "agentTeams": "0.1.23",
       "scriptedModel": true,
       "concurrentWorkers": 2,
-      "traceSha256": "60f590efcfee61e4a5f8c4d851fdb4ab635b4e1e79e3eea7acf641d04c89ea04"
+      "traceSha256": "39a0df2dd65ec0e74ec55f02564d1104aa567737acdbd9fe01a6b90974ddded3"
     },
     {
       "scenario": "failure",
@@ -26,36 +35,46 @@
       "agentTeams": "0.1.23",
       "scriptedModel": true,
       "concurrentWorkers": 2,
-      "traceSha256": "45321621f694660ff8697f6dfdfecb7a05ccfb9cf4cd1f2f7badeb7f98609e29"
+      "traceSha256": "77fb5f181a2c771066061e533da96bf19d8e8370be4d9f81d3d9f39e2c2fdd63"
     }
   ],
   "checkedSurfaces": [
-    "native slash command",
+    "native slash commands",
     "saved plan and architecture",
     "complete staged quality DAG",
     "no child before approval",
+    "incomplete upload cannot be approved",
+    "duplicate start rejected",
     "native worker concurrency",
     "actual file writes and Node checks",
     "independent review and integration",
     "failed command blocks integration",
     "member tool restrictions",
     "upstream client module discovery",
-    "native status tool"
+    "native delivery blockers and warnings preserved",
+    "verification/integration task status summary"
   ],
-  "limitations": [
-    "Single real-model sample; no speed benchmark",
-    "No browser visual QA",
-    "Worktree not implemented"
-  ],
-  "evidenceDirectory": ".scratch/runtime-1791802560228",
   "realModel": {
+    "passed": true,
     "provider": "opencode-go",
     "model": "deepseek-v4.1-flash",
     "tasks": 8,
-    "deliveryTestsPassed": 26,
+    "deliveryTestsPassed": 25,
     "extraAcceptanceChecks": 46,
-    "workerOverlapMs": 69419,
-    "coldResume": true,
-    "requirementsSnapshotBinding": true
-  }
+    "workerOverlapMs": 74521,
+    "modelRequests": 121,
+    "statusCommand": true,
+    "traceSha256": "5340716d831aeed94bd5d876a9ebed283af5623a1070784ccd4385f3a05b47fb"
+  },
+  "limitations": [
+    "Single real-model sample; no speed benchmark",
+    "No browser visual QA",
+    "Shared workspace; no filesystem sandbox or worktrees",
+    "Native full-runtime verification limited to Windows and DSH 0.2.0-rc.2"
+  ],
+  "evidenceDirectories": [
+    ".scratch/runtime-1791860303756",
+    ".scratch/install-1791860292805",
+    ".scratch/live-development-1791860303798"
+  ]
 }

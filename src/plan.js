@@ -5,7 +5,7 @@ import path from 'node:path';
 export const MEMBERS = ['worker-a', 'worker-b', 'verifier', 'reviewer'];
 const KINDS = ['requirements', 'implementation', 'verification', 'review', 'integration'];
 const ID = /^[a-z][a-z0-9-]{0,31}$/;
-const PLAN_ID = /^[a-f0-9-]{36}$/;
+const PLAN_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const LIMIT = 128_000;
 
 function text(value, label, max = 4000) {
@@ -26,7 +26,7 @@ function strings(value, label, { required = true, max = 24 } = {}) {
 function scope(value) {
   const result = text(value, 'inScope', 240);
   if (result.startsWith('/') || result.includes('\\') || result.includes(':') ||
-      /[?*\[\]{}\x00-\x1f]/.test(result) || result.split('/').some(part => part === '..' || part === '.' || /[ .]$/.test(part)) ||
+      /[?*\[\]{}<>"|\x00-\x1f]/.test(result) || result.split('/').some(part => part === '..' || part === '.' || /[ .]$/.test(part) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part)) ||
       /(^|\/)(\.git|\.agent-teams|\.collab-dev|node_modules|\.env(?:\.[^/]+)?)(\/|$)/i.test(result)) {
     throw new Error(`修改范围必须是工作区相对路径，且不能指向受保护目录：${result}`);
   }
@@ -41,6 +41,7 @@ function overlaps(a, b) {
 
 /** Validate a complete quality DAG before creating any team or writing artifacts. */
 export function validatePlan(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('计划必须是对象。');
   const goal = text(input.goal, 'goal');
   const architecture = text(input.architecture, 'architecture', 12_000);
   const constraints = strings(input.constraints, 'constraints', { required: false });
@@ -48,7 +49,7 @@ export function validatePlan(input) {
     throw new Error('计划应包含 5 至 24 个需求、实现、验证、审查与集成任务。');
   }
   const tasks = input.tasks.map(item => {
-    if (!item || !ID.test(item.id)) throw new Error('任务 id 必须为 1–32 位小写字母、数字或连字符，以字母开头，例如 verify-api；不允许下划线。');
+    if (!item || typeof item.id !== 'string' || !ID.test(item.id)) throw new Error('任务 id 必须为 1–32 位小写字母、数字或连字符，以字母开头，例如 verify-api；不允许下划线。');
     if (!KINDS.includes(item.kind)) throw new Error(`未知任务类型：${item.kind}`);
     if (!MEMBERS.includes(item.assignee)) throw new Error(`未知成员：${item.assignee}`);
     const task = {
@@ -70,6 +71,8 @@ export function validatePlan(input) {
     } else if (task.kind === 'verification' && task.assignee !== 'verifier') {
       throw new Error('验证任务必须分配给 verifier。');
     }
+    if (task.kind === 'verification' && !task.verify.length) throw new Error('验证任务必须提供真实验证命令。');
+    if (task.reviewedTaskId && task.kind !== 'review') throw new Error('只有独立审查任务可以设置 reviewedTaskId。');
     return task;
   });
   const byId = new Map(tasks.map(task => [task.id, task]));
@@ -118,6 +121,7 @@ export function validatePlan(input) {
     }
   }
   const integrations = tasks.filter(task => task.kind === 'integration');
+  if (integrations.length !== 1) throw new Error('计划必须有且只有一个最终集成任务。');
   for (const implementation of writes) {
     const reviews = tasks.filter(task => task.kind === 'review' && task.reviewedTaskId === implementation.id);
     if (!reviews.length || !integrations.some(task => reviews.some(review => ancestors.get(task.id).has(review.id)))) {
@@ -128,6 +132,9 @@ export function validatePlan(input) {
     if (!task.verify.length || !writes.every(t => ancestors.get(task.id).has(t.id)) ||
         !writes.every(t => hasAncestor(task, review => review.kind === 'review' && review.reviewedTaskId === t.id))) {
       throw new Error('最终集成必须覆盖全部实现、依赖每项实现的独立审查并提供验收命令。');
+    }
+    if (tasks.some(other => other.id !== task.id && !ancestors.get(task.id).has(other.id))) {
+      throw new Error('最终集成必须覆盖计划内所有任务，不能留下未纳入交付的验证或审查。');
     }
   }
   return { schemaVersion: 1, goal, architecture, constraints, tasks: ordered };
@@ -146,8 +153,12 @@ export function taskArguments(task, ids) {
   };
 }
 
+export function requireMainSession(agent) {
+  if (!agent?.id || !agent.session?.header || agent.session.header.parentSession) throw new Error('协作开发命令和工具仅限主会话使用。');
+}
+
 function sessionKey(agent) {
-  if (!agent?.id || agent.session.header.parentSession) throw new Error('只有主会话可以制定和启动开发计划。');
+  requireMainSession(agent);
   return createHash('sha256').update(String(agent.id)).digest('hex').slice(0, 24);
 }
 
@@ -168,6 +179,7 @@ async function planDirectory(agent) {
 }
 
 export async function savePlan(agent, input) {
+  requireMainSession(agent);
   const plan = validatePlan(input);
   const json = JSON.stringify(plan, null, 2) + '\n';
   if (Buffer.byteLength(json) > LIMIT) throw new Error('计划过大，请缩小任务范围。');

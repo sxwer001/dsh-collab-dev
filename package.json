@@ -1,6 +1,6 @@
 {
   "name": "dsh-collab-dev",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Plan architecture, delegate independent coding tasks, verify and review with native DSH AgentTeams.",
   "type": "module",
   "license": "MIT",
@@ -33,6 +33,7 @@
     "examples",
     "README.md",
     "README.en.md",
+    "DEVELOPMENT.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "compatibility.json",
@@ -73,7 +74,7 @@
     }
   },
   "scripts": {
-    "check": "node --check src/index.js && node --check src/plan.js",
+    "check": "node --check src/index.js && node --check src/plan.js && node --check src/status.js",
     "test": "node --test test/*.test.mjs",
     "test:runtime": "node scripts/runtime-check.mjs",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",

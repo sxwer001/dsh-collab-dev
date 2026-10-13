@@ -42,6 +42,8 @@ for (const scenario of ['success', 'failure']) {
   assert.equal(code, 0, 'Real Harness fixture failed'); assert.match(stdout, /COLLAB_RUNTIME_OK/);
   const events = (await readFile(trace, 'utf8')).trim().split('\n').map(JSON.parse);
   assert.ok(events.some(event => event.event === 'staged' && event.noMembersStarted));
+  assert.ok(events.some(event => event.event === 'partial-approval-blocked'));
+  assert.ok(events.some(event => event.event === 'status-summary' && event.deliverable === (scenario === 'success')));
   const starts = events.filter(event => event.event === 'check-start' && event.kind === 'implementation');
   const ends = events.filter(event => event.event === 'check-end' && event.kind === 'implementation');
   assert.equal(starts.length, 2); assert.ok(Math.max(...starts.map(e => e.time)) < Math.min(...ends.map(e => e.time)), 'Coding members must overlap');

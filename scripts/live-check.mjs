@@ -8,6 +8,7 @@ import YAML from 'yaml';
 const root = path.resolve(import.meta.dirname, '..');
 const liveHome = path.join(os.homedir(), '.dsh');
 const liveProfile = path.join(liveHome, 'profiles/desktop');
+const packageRoot = process.env.COLLAB_PACKAGE_ROOT ? path.resolve(process.env.COLLAB_PACKAGE_ROOT) : path.join(liveProfile, 'node_modules/dsh-collab-dev');
 const runtime = path.join(root, '.test-runtime/node_modules');
 const mode = process.argv[2] ?? 'development';
 const continuing = ['resume', 'binding'].includes(mode);
@@ -30,8 +31,8 @@ if (selection.provider !== 'opencode-go') throw new Error('This check currently 
 if (Object.values(providers.providers ?? {}).some(provider => provider.apiKey || provider.headers || provider.env)) throw new Error('Inline provider credentials must remain in the native profile');
 const links = [
   ['@deepseek-ai', path.join(runtime, '@deepseek-ai')],
-  ['@nanmicoder', path.join(liveProfile, 'node_modules/dsh-collab-dev/node_modules/@nanmicoder')],
-  ['dsh-collab-dev', path.join(liveProfile, 'node_modules/dsh-collab-dev')],
+  ['@nanmicoder', path.join(packageRoot, 'node_modules/@nanmicoder')],
+  ['dsh-collab-dev', packageRoot],
   ['dsh-opencode-go-model-list', path.join(liveProfile, 'node_modules/dsh-opencode-go-model-list')],
 ];
 if (!continuing) for (const [name, target] of links) await symlink(target, path.join(profile, 'node_modules', name), process.platform === 'win32' ? 'junction' : 'dir');
@@ -49,7 +50,7 @@ await writeFile(path.join(profile, 'cordis.patch.yml'), JSON.stringify([
   { id: 'agent-default-model', config: selection }, { id: 'llm-pi-ai', config: providers },
   { id: 'credentials', config: { path: path.join(liveHome, '.credentials.yaml'), watch: false } },
   { id: 'opencode-go-model-list', config: { offline: true, refreshIntervalMs: 0, cachePath: path.join(liveHome, 'cache/opencode-go-model-list/catalog.json') } },
-  { id: 'agent-teams', config: JSON.parse(await readFile(path.join(root, 'cordis.patch.yml'), 'utf8'))[0].insert[0].config },
+  { id: 'agent-teams', config: JSON.parse(await readFile(path.join(packageRoot, 'cordis.patch.yml'), 'utf8'))[0].insert[0].config },
   { insert: [{ id: 'live-check-driver', name: path.join(root, 'test/live-driver.mjs').replaceAll('\\', '/') }] },
 ], null, 2));
 await writeFile(path.join(base, 'selection.json'), JSON.stringify(selection));
