@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
-  "plugin": "1.0.0",
-  "host": "0.2.0-rc.2",
-  "agentTeams": "0.1.23",
+  "plugin": "1.0.1",
+  "host": "0.2.1-rc.5",
+  "supportedHosts": ["0.2.0-rc.2", "0.2.1-rc.5"],
+  "agentTeams": "0.1.28",
   "mode": "shared-workspace",
   "developmentPrinciple": "Ponytail full",
   "worktrees": false,

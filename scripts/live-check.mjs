@@ -1,5 +1,5 @@
 // Opt-in real model check: uses the installed plugin and native credential resolution.
-import { mkdir, readFile, writeFile, symlink, lstat, unlink } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, realpath, symlink, lstat, unlink } from 'node:fs/promises';
 import { spawn, execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,7 +9,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const liveHome = path.join(os.homedir(), '.dsh');
 const liveProfile = path.join(liveHome, 'profiles/desktop');
 const packageRoot = process.env.COLLAB_PACKAGE_ROOT ? path.resolve(process.env.COLLAB_PACKAGE_ROOT) : path.join(liveProfile, 'node_modules/dsh-collab-dev');
-const runtime = path.join(root, '.test-runtime/node_modules');
+const runtime = await realpath(path.join(root, 'node_modules'));
 const mode = process.argv[2] ?? 'development';
 const continuing = ['resume', 'binding'].includes(mode);
 const base = continuing ? path.resolve(process.argv[3]) : path.join(root, '.scratch', `live-${mode}-${Date.now()}`);
@@ -48,7 +48,7 @@ await writeFile(path.join(profile, 'package.json'), JSON.stringify({ private: tr
 await writeFile(path.join(profile, 'cordis.patch.yml'), JSON.stringify([
   { id: 'headless-startup', disabled: true }, { id: 'headless-runner', disabled: true },
   { id: 'agent-default-model', config: selection }, { id: 'llm-pi-ai', config: providers },
-  { id: 'credentials', config: { path: path.join(liveHome, '.credentials.yaml'), watch: false } },
+  { id: 'credentials', disabled: false, config: { path: path.join(liveHome, '.credentials.yaml'), watch: false } },
   { id: 'opencode-go-model-list', config: { offline: true, refreshIntervalMs: 0, cachePath: path.join(liveHome, 'cache/opencode-go-model-list/catalog.json') } },
   { id: 'agent-teams', config: JSON.parse(await readFile(path.join(packageRoot, 'cordis.patch.yml'), 'utf8'))[0].insert[0].config },
   { insert: [{ id: 'live-check-driver', name: path.join(root, 'test/live-driver.mjs').replaceAll('\\', '/') }] },

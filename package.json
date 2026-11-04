@@ -1,6 +1,6 @@
 {
   "name": "dsh-collab-dev",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Plan architecture, delegate independent coding tasks, verify and review with native DSH AgentTeams.",
   "type": "module",
   "license": "MIT",
@@ -13,8 +13,8 @@
     "url": "https://github.com/sxwer001/dsh-collab-dev/issues"
   },
   "engines": {
-    "node": ">=22.19.0",
-    "dsh": "0.2.0-rc.2"
+    "node": "^22.19.0 || >=24",
+    "dsh": "0.2.0-rc.2 || 0.2.1-rc.5"
   },
   "keywords": [
     "dsh-plugin",
@@ -33,6 +33,7 @@
     "examples",
     "README.md",
     "README.en.md",
+    "CHANGELOG.md",
     "DEVELOPMENT.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
@@ -41,15 +42,15 @@
     "scripts/patch-agent-teams.mjs"
   ],
   "dependencies": {
-    "@nanmicoder/dsh-agent-teams": "0.1.23"
+    "@nanmicoder/dsh-agent-teams": "0.1.28"
   },
   "bundleDependencies": ["@nanmicoder/dsh-agent-teams"],
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-commands": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+    "@deepseek-ai/dsh-commands": "0.2.0-rc.2 || 0.2.1-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2 || 0.2.1-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2 || 0.2.1-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2 || 0.2.1-rc.5"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/cordis": {

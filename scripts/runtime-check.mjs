@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile, readFile, symlink } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, realpath, symlink } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -7,7 +7,9 @@ import { existsSync } from 'node:fs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const packageRoot = process.argv[2] ? path.resolve(process.argv[2]) : root;
-const runtime = path.join(root, '.test-runtime/node_modules');
+const runtime = await realpath(path.join(root, 'node_modules'));
+const hostVersion = JSON.parse(await readFile(path.join(runtime, '@deepseek-ai/dsh/package.json'), 'utf8')).version;
+const teamVersion = JSON.parse(await readFile(path.join(packageRoot, 'node_modules/@nanmicoder/dsh-agent-teams/package.json'), 'utf8')).version;
 const report = path.join(root, '.scratch', 'runtime-' + Date.now());
 const checks = [];
 for (const scenario of ['success', 'failure']) {
@@ -48,7 +50,7 @@ for (const scenario of ['success', 'failure']) {
   const ends = events.filter(event => event.event === 'check-end' && event.kind === 'implementation');
   assert.equal(starts.length, 2); assert.ok(Math.max(...starts.map(e => e.time)) < Math.min(...ends.map(e => e.time)), 'Coding members must overlap');
   assert.ok(events.some(event => event.event === (scenario === 'success' ? 'delivery-complete' : 'failure-blocked')));
-  checks.push({ scenario, passed: true, realHarness: '0.2.0-rc.2', agentTeams: '0.1.23', scriptedModel: true, concurrentWorkers: 2, traceSha256: createHash('sha256').update(await readFile(trace)).digest('hex') });
+  checks.push({ scenario, passed: true, realHarness: hostVersion, agentTeams: teamVersion, scriptedModel: true, concurrentWorkers: 2, traceSha256: createHash('sha256').update(await readFile(trace)).digest('hex') });
 }
 await writeFile(path.join(report, 'results.json'), JSON.stringify(checks, null, 2));
 console.log('Runtime checks passed: ' + report);

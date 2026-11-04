@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, lstat, realpath, writeFile, rename, rm, readFile } from 'node:fs/promises';
+import fs, { mkdir, lstat, realpath, writeFile, readFile } from 'node:fs/promises';
+import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 
 export const MEMBERS = ['worker-a', 'worker-b', 'verifier', 'reviewer'];
@@ -178,6 +179,17 @@ async function planDirectory(agent) {
   return own;
 }
 
+// Keep the atomic rename; Windows file locks get at most 750 ms to clear.
+export async function renameWithRetry(source, target) {
+  for (let attempt = 0; ; attempt++) {
+    try { await fs.rename(source, target); return; }
+    catch (error) {
+      if (process.platform !== 'win32' || !['EPERM', 'EBUSY'].includes(error.code) || attempt >= 4) throw error;
+      await delay(50 * 2 ** attempt);
+    }
+  }
+}
+
 export async function savePlan(agent, input) {
   requireMainSession(agent);
   const plan = validatePlan(input);
@@ -192,12 +204,14 @@ export async function savePlan(agent, input) {
     await writeFile(path.join(staging, 'plan.json'), json, { flag: 'wx' });
     await writeFile(path.join(staging, 'PLAN.md'), markdown + '\n', { flag: 'wx' });
     await writeFile(path.join(staging, 'ARCHITECTURE.md'), '# 架构与接口合同\n\n' + plan.architecture + '\n', { flag: 'wx' });
-    await rename(staging, target);
+    await renameWithRetry(staging, target);
     return { plan_id: id, directory: target, task_count: plan.tasks.length };
-  } finally {
+  } catch (error) {
     // Only this call's randomly allocated staging directory is removed.
     if (path.dirname(staging) !== base) throw new Error('非法清理路径。');
-    await rm(staging, { recursive: true, force: true });
+    try { await fs.rm(staging, { recursive: true, force: true, maxRetries: 4, retryDelay: 50 }); }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], `${error.message}；临时目录清理失败：${cleanupError.message}`, { cause: error }); }
+    throw error;
   }
 }
 

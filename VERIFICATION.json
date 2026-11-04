@@ -1,20 +1,24 @@
 {
-  "plugin": "1.0.0",
-  "checkedDate": "2026-10-13",
+  "plugin": "1.0.1",
+  "checkedDate": "2026-11-04",
   "platform": "Windows",
   "node": "24.15.0",
-  "host": "0.2.0-rc.2",
+  "host": "0.2.1-rc.5",
+  "supportedHosts": [
+    "0.2.0-rc.2",
+    "0.2.1-rc.5"
+  ],
   "agentTeams": {
-    "version": "0.1.23",
+    "version": "0.1.28",
     "source": "published npm package with two documented compatibility fixes",
-    "npmShasum": "abd18841e042d85e3790a2c693c70f3864bf2e47"
+    "npmShasum": "c9fe3f2d4b15f4f652db92a4d78f9a3eea3b9aab"
   },
-  "unitTestGroups": 7,
+  "unitTestGroups": 9,
   "cleanSourceBuild": true,
   "isolatedNativeInstall": true,
   "runtimeSourceSha256": {
-    "src/index.js": "ef074c00e962cb0282588b25cebaa5b39027295ddf3f5d2ffc3703c16479c3f2",
-    "src/plan.js": "f85c4113ff2d35dbceb3f7262ccb42b8ac35b6bdd7db3cd86265f9588a7078e1",
+    "src/index.js": "7a92eb28923c38c47657523aa181594e434c187ad3a5a5c066cf41c7de6954d7",
+    "src/plan.js": "f488b557a0a829e25fd02e0dc0fac2420abef4a6bf1c58918b4d96457ec14df3",
     "src/status.js": "3373d0626f660f47be5a3700af1ef3f2aef764d9f798df383033ce9d5eb29bce",
     "cordis.patch.yml": "c2f7776080572b499d08d26796371a0b9ed251426f05513eb6139b68c1471d5c"
   },
@@ -22,22 +26,71 @@
     {
       "scenario": "success",
       "passed": true,
-      "realHarness": "0.2.0-rc.2",
-      "agentTeams": "0.1.23",
+      "realHarness": "0.2.1-rc.5",
+      "agentTeams": "0.1.28",
       "scriptedModel": true,
       "concurrentWorkers": 2,
-      "traceSha256": "39a0df2dd65ec0e74ec55f02564d1104aa567737acdbd9fe01a6b90974ddded3"
+      "traceSha256": "5db049514c4b7405bcdc79210b96538fe33b105cdeecb7dc309b9d93cb17600a"
+    },
+    {
+      "scenario": "failure",
+      "passed": true,
+      "realHarness": "0.2.1-rc.5",
+      "agentTeams": "0.1.28",
+      "scriptedModel": true,
+      "concurrentWorkers": 2,
+      "traceSha256": "6b7b3b9409c7aa261d0da55f1ca7bc779d8dd7b5e487f03795392aec77c162ea"
+    },
+    {
+      "scenario": "success",
+      "passed": true,
+      "realHarness": "0.2.0-rc.2",
+      "agentTeams": "0.1.28",
+      "scriptedModel": true,
+      "concurrentWorkers": 2,
+      "traceSha256": "09cd14472d90b8017e10c7cd487ca6f1ab57decf50d55ddb9411f58076b7d206"
     },
     {
       "scenario": "failure",
       "passed": true,
       "realHarness": "0.2.0-rc.2",
-      "agentTeams": "0.1.23",
+      "agentTeams": "0.1.28",
       "scriptedModel": true,
       "concurrentWorkers": 2,
-      "traceSha256": "77fb5f181a2c771066061e533da96bf19d8e8370be4d9f81d3d9f39e2c2fdd63"
+      "traceSha256": "753ce025db5ed8b6a0f3d4b4a851a2569ff3b61deba90fb13b87e34cbcdb8c02"
     }
   ],
+  "packagedRuntime": [
+    {
+      "scenario": "success",
+      "passed": true,
+      "realHarness": "0.2.1-rc.5",
+      "agentTeams": "0.1.28",
+      "scriptedModel": true,
+      "concurrentWorkers": 2,
+      "traceSha256": "5880b125a6203d7af0a4244fb7baf38a531f22e7d3d2f0a00aa9ed934990c74e"
+    },
+    {
+      "scenario": "failure",
+      "passed": true,
+      "realHarness": "0.2.1-rc.5",
+      "agentTeams": "0.1.28",
+      "scriptedModel": true,
+      "concurrentWorkers": 2,
+      "traceSha256": "4e044380e3b1729c014622ec3a052a972c2663ac6dd5b2b08944056a0b7ea760"
+    }
+  ],
+  "installation": {
+    "version": "1.0.1",
+    "bundledAgentTeams": "0.1.28",
+    "sourceMatches": true,
+    "bothSafetyPatchesPresent": true
+  },
+  "webSessionScope": {
+    "host": "0.2.1-rc.5",
+    "collaborationToolsVisible": true,
+    "browserErrors": 0
+  },
   "checkedSurfaces": [
     "native slash commands",
     "saved plan and architecture",
@@ -52,29 +105,161 @@
     "member tool restrictions",
     "upstream client module discovery",
     "native delivery blockers and warnings preserved",
-    "verification/integration task status summary"
+    "verification/integration task status summary",
+    "bounded Windows rename retry and failed draft cleanup"
   ],
   "realModel": {
+    "run": true,
     "passed": true,
-    "provider": "opencode-go",
-    "model": "deepseek-v4.1-flash",
-    "tasks": 8,
-    "deliveryTestsPassed": 25,
-    "extraAcceptanceChecks": 46,
-    "workerOverlapMs": 74521,
-    "modelRequests": 121,
-    "statusCommand": true,
-    "traceSha256": "5340716d831aeed94bd5d876a9ebed283af5623a1070784ccd4385f3a05b47fb"
+    "date": "2026-11-04",
+    "host": "0.2.1-rc.5",
+    "plugin": "1.0.1",
+    "selection": {
+      "provider": "opencode-go",
+      "model": "deepseek-v4.1-flash"
+    },
+    "installedPackage": true,
+    "nativeCredentials": true,
+    "modelRequests": 116,
+    "concurrentWorkers": 2,
+    "overlapMs": 82216,
+    "completedTasks": 8,
+    "deliveredTestCases": 30,
+    "smokePassed": true,
+    "independentAcceptanceChecks": 46,
+    "deliveryStatus": "团队 collab-34b8bd04-a256-4d28-95b0-4d9f70b14c2e：可交付",
+    "firstIntegration": {
+      "failed": true,
+      "cause": "Captain-authored domestic overflow test contradicted the free-shipping threshold",
+      "ownerFixedTest": true,
+      "verifierRetestPassed": true,
+      "failurePreservedInEvidence": true
+    },
+    "upstreamFailuresRecovered": [
+      {
+        "number": 12,
+        "code": "TRANSPORT"
+      },
+      {
+        "number": 14,
+        "code": "TRANSPORT"
+      },
+      {
+        "number": 31,
+        "code": "TRANSPORT"
+      },
+      {
+        "number": 32,
+        "code": "TRANSPORT"
+      },
+      {
+        "number": 101,
+        "code": "TRANSPORT"
+      }
+    ],
+    "nativeRestart": {
+      "passed": true,
+      "executable": "DeepSeek Harness.exe",
+      "node": "v24.21.0",
+      "electron": "44.7.0"
+    },
+    "traceSha256": "89c46e81899b9a3a4a10526ce23cd7aaad9dec960fd042528488add6e867ba2e",
+    "evidenceDirectory": ".scratch/live-development-1793765105853",
+    "historicalRecord": "previousRelease.realModel"
   },
   "limitations": [
-    "Single real-model sample; no speed benchmark",
-    "No browser visual QA",
+    "No native Desktop shell visual QA",
     "Shared workspace; no filesystem sandbox or worktrees",
-    "Native full-runtime verification limited to Windows and DSH 0.2.0-rc.2"
+    "Windows only",
+    "Current-release real-provider acceptance covers OpenCode Go / deepseek-v4.1-flash only"
   ],
   "evidenceDirectories": [
-    ".scratch/runtime-1791860303756",
-    ".scratch/install-1791860292805",
-    ".scratch/live-development-1791860303798"
-  ]
+    ".scratch/runtime-1793763629244",
+    ".scratch/runtime-1793763697616",
+    ".scratch/install-1793763942015",
+    ".scratch/runtime-1793764039087",
+    ".scratch/install-1793764410552",
+    ".scratch/runtime-1793764462136",
+    ".scratch/live-development-1793765105853"
+  ],
+  "previousRelease": {
+    "plugin": "1.0.0",
+    "checkedDate": "2026-10-13",
+    "platform": "Windows",
+    "node": "24.15.0",
+    "host": "0.2.0-rc.2",
+    "agentTeams": {
+      "version": "0.1.23",
+      "source": "published npm package with two documented compatibility fixes",
+      "npmShasum": "abd18841e042d85e3790a2c693c70f3864bf2e47"
+    },
+    "unitTestGroups": 7,
+    "cleanSourceBuild": true,
+    "isolatedNativeInstall": true,
+    "runtimeSourceSha256": {
+      "src/index.js": "ef074c00e962cb0282588b25cebaa5b39027295ddf3f5d2ffc3703c16479c3f2",
+      "src/plan.js": "f85c4113ff2d35dbceb3f7262ccb42b8ac35b6bdd7db3cd86265f9588a7078e1",
+      "src/status.js": "3373d0626f660f47be5a3700af1ef3f2aef764d9f798df383033ce9d5eb29bce",
+      "cordis.patch.yml": "c2f7776080572b499d08d26796371a0b9ed251426f05513eb6139b68c1471d5c"
+    },
+    "runtime": [
+      {
+        "scenario": "success",
+        "passed": true,
+        "realHarness": "0.2.0-rc.2",
+        "agentTeams": "0.1.23",
+        "scriptedModel": true,
+        "concurrentWorkers": 2,
+        "traceSha256": "39a0df2dd65ec0e74ec55f02564d1104aa567737acdbd9fe01a6b90974ddded3"
+      },
+      {
+        "scenario": "failure",
+        "passed": true,
+        "realHarness": "0.2.0-rc.2",
+        "agentTeams": "0.1.23",
+        "scriptedModel": true,
+        "concurrentWorkers": 2,
+        "traceSha256": "77fb5f181a2c771066061e533da96bf19d8e8370be4d9f81d3d9f39e2c2fdd63"
+      }
+    ],
+    "checkedSurfaces": [
+      "native slash commands",
+      "saved plan and architecture",
+      "complete staged quality DAG",
+      "no child before approval",
+      "incomplete upload cannot be approved",
+      "duplicate start rejected",
+      "native worker concurrency",
+      "actual file writes and Node checks",
+      "independent review and integration",
+      "failed command blocks integration",
+      "member tool restrictions",
+      "upstream client module discovery",
+      "native delivery blockers and warnings preserved",
+      "verification/integration task status summary"
+    ],
+    "realModel": {
+      "passed": true,
+      "provider": "opencode-go",
+      "model": "deepseek-v4.1-flash",
+      "tasks": 8,
+      "deliveryTestsPassed": 25,
+      "extraAcceptanceChecks": 46,
+      "workerOverlapMs": 74521,
+      "modelRequests": 121,
+      "statusCommand": true,
+      "traceSha256": "5340716d831aeed94bd5d876a9ebed283af5623a1070784ccd4385f3a05b47fb"
+    },
+    "limitations": [
+      "Single real-model sample; no speed benchmark",
+      "No browser visual QA",
+      "Shared workspace; no filesystem sandbox or worktrees",
+      "Native full-runtime verification limited to Windows and DSH 0.2.0-rc.2"
+    ],
+    "evidenceDirectories": [
+      ".scratch/runtime-1791860303756",
+      ".scratch/install-1791860292805",
+      ".scratch/live-development-1791860303798"
+    ]
+  }
 }

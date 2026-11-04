@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 export const name = 'collab-live-check';
-export const inject = ['llm', 'agents', 'sessions', 'commands', 'tools'];
+export const inject = ['llm', 'agents', 'sessions', 'commands', 'tools', 'credentials'];
 const base = process.env.COLLAB_LIVE_BASE;
 const mode = process.env.COLLAB_LIVE_MODE;
 const log = data => appendFileSync(path.join(base, 'trace.jsonl'), JSON.stringify({ ...data, time: Date.now() }) + '\n');

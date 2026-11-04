@@ -11,7 +11,7 @@ const base = path.join(root, '.scratch', 'install-' + Date.now());
 const home = path.join(base, 'home');
 await mkdir(home, { recursive: true });
 const userconfig = path.join(base, 'empty.npmrc'); await writeFile(userconfig, 'registry=https://registry.npmjs.org/\n');
-const bin = path.join(root, '.test-runtime/node_modules/@deepseek-ai/dsh/lib/bin.js');
+const bin = path.join(root, 'node_modules/@deepseek-ai/dsh/lib/bin.js');
 const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, COMSPEC: process.env.COMSPEC,
   TEMP: process.env.TEMP, TMP: process.env.TMP, LOCALAPPDATA: process.env.LOCALAPPDATA,
   USERPROFILE: home, HOME: home, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1', npm_config_userconfig: userconfig };

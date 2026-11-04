@@ -1,6 +1,6 @@
 # Third-party notices
 
-This plugin depends on @nanmicoder/dsh-agent-teams 0.1.23, authored by 程序员阿江 (Relakkes), https://github.com/NanmiCoder/dsh-agent-teams. Team scheduling, persistent members, quality gates and the existing UI are provided by that dependency. This plugin does not claim those components as an original implementation. Runtime fixtures follow the upstream project's Harness testing approach.
+This plugin depends on @nanmicoder/dsh-agent-teams 0.1.28, authored by 程序员阿江 (Relakkes), https://github.com/NanmiCoder/dsh-agent-teams. Team scheduling, persistent members, quality gates and the existing UI are provided by that dependency. This plugin does not claim those components as an original implementation. Runtime fixtures follow the upstream project's Harness testing approach.
 
 DeepSeek Harness is the MIT-licensed host platform: https://github.com/deepseek-ai/deepseek-harness. This is an independent community extension, without endorsement from DeepSeek or the AgentTeams author.
 
@@ -30,7 +30,7 @@ SOFTWARE.
 
 # Local compatibility fixes
 
-The bundled AgentTeams 0.1.23 has two local changes:
+The bundled AgentTeams 0.1.28 has two local changes:
 
 - `bindReviewToRevision` binds a requirements verdict without an implementation
   target to its own contract and immutable architecture/plan artifacts. The original

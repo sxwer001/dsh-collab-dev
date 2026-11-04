@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, mkdtemp, rm, symlink } from 'node:fs/promises';
+import fs, { readFile, readdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { validatePlan, savePlan, loadPlan, taskArguments } from '../src/plan.js';
@@ -84,5 +84,48 @@ test('plan artifacts are immutable, owner-scoped and reject children and symlink
   } finally {
     assert.equal(path.dirname(root), os.tmpdir());
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('Windows transient rename failures retry the atomic commit without losing the plan', { skip: process.platform !== 'win32' }, async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'collab-plan-'));
+  const rename = fs.rename;
+  let attempts = 0;
+  t.mock.method(fs, 'rename', async (...args) => {
+    if (++attempts < 3) throw Object.assign(new Error('temporary file lock'), { code: attempts === 1 ? 'EPERM' : 'EBUSY' });
+    return rename(...args);
+  });
+  try {
+    const agent = { id: 'root', session: { header: { cwd: root } } };
+    const saved = await savePlan(agent, copy());
+    assert.equal(attempts, 3);
+    assert.equal((await loadPlan(agent, saved.plan_id)).plan.tasks.length, 8);
+    assert.deepEqual(await readdir(path.dirname(saved.directory)), [saved.plan_id]);
+  } finally {
+    assert.equal(path.dirname(root), os.tmpdir());
+    await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 50 });
+  }
+});
+
+test('rename retries are bounded, preserve errors and clean up unpublished plans', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'collab-plan-'));
+  const failure = Object.assign(new Error('locked'), { code: 'EPERM' });
+  let attempts = 0;
+  t.mock.method(fs, 'rename', async () => { attempts++; throw failure; });
+  const agent = { id: 'root', session: { header: { cwd: root } } };
+  try {
+    await assert.rejects(savePlan(agent, copy()), error => error === failure);
+    assert.equal(attempts, process.platform === 'win32' ? 5 : 1);
+    const own = path.join(root, '.collab-dev', (await readdir(path.join(root, '.collab-dev')))[0]);
+    assert.deepEqual(await readdir(own), []);
+    failure.code = 'EACCES'; attempts = 0;
+    await assert.rejects(savePlan(agent, copy()), error => error === failure);
+    assert.equal(attempts, 1);
+    const cleanupFailure = new Error('cleanup failed');
+    t.mock.method(fs, 'rm', async () => { throw cleanupFailure; });
+    await assert.rejects(savePlan(agent, copy()), error => error instanceof AggregateError && error.cause === failure && error.errors[1] === cleanupFailure && error.message.includes('locked') && error.message.includes('cleanup failed'));
+  } finally {
+    assert.equal(path.dirname(root), os.tmpdir());
+    await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 50 });
   }
 });

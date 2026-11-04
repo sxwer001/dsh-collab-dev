@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import runtimePackage from '@deepseek-ai/dsh-tools/package.json' with { type: 'json' };
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm';
 import { savePlan, loadPlan, taskArguments, requireMainSession, MEMBERS } from './plan.js';
@@ -40,7 +39,6 @@ async function invokeTool(ctx, exec, name, args) {
 }
 
 export function apply(ctx) {
-  if (runtimePackage.version !== '0.2.0-rc.2') throw new Error('dsh-collab-dev 仅验证了 DSH 0.2.0-rc.2，请使用对应宿主版本。');
   const starting = new Set();
   ctx.systemPrompt.section({ name: 'collab-dev:workflow', order: 118, interpolate: false,
     text: context => context.agent?.session.header.parentSession ? '' : PROTOCOL });
