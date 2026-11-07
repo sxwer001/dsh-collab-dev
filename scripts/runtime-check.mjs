@@ -12,7 +12,7 @@ const hostVersion = JSON.parse(await readFile(path.join(runtime, '@deepseek-ai/d
 const teamVersion = JSON.parse(await readFile(path.join(packageRoot, 'node_modules/@nanmicoder/dsh-agent-teams/package.json'), 'utf8')).version;
 const report = path.join(root, '.scratch', 'runtime-' + Date.now());
 const checks = [];
-for (const scenario of ['success', 'failure']) {
+for (const scenario of ['success', 'failure', 'fallback']) {
   const base = path.join(report, scenario), home = path.join(base, 'home'), profile = path.join(home, 'profiles/headless'), workspace = path.join(base, 'workspace');
   await mkdir(path.join(profile, 'node_modules'), { recursive: true }); await mkdir(workspace, { recursive: true });
   await symlink(packageRoot, path.join(profile, 'node_modules/dsh-collab-dev'), process.platform === 'win32' ? 'junction' : 'dir');
@@ -25,6 +25,10 @@ for (const scenario of ['success', 'failure']) {
     { id: 'llm-deepseek', disabled: true }, { id: 'llm-pi-ai', disabled: true },
     { id: 'agent-default-model', config: { provider: 'collab-fixture', model: 'fixture' } },
     { id: 'headless-startup', disabled: true }, { id: 'headless-runner', disabled: true },
+    ...(scenario === 'fallback' ? [{ id: 'agent-teams', config: {
+      ...JSON.parse(await readFile(path.join(root, 'cordis.patch.yml'), 'utf8'))[0].insert.find(row => row.id === 'agent-teams').config,
+      fallback: { provider: 'collab-fixture', model: 'fallback' },
+    } }] : []),
     { insert: [{ id: 'fixture-client-modules', name: '@deepseek-ai/dsh-client-modules' },
       { id: 'fixture', name: path.join(root, 'test/runtime-fixture.mjs').replaceAll('\\', '/') }] },
   ]));
@@ -45,11 +49,12 @@ for (const scenario of ['success', 'failure']) {
   const events = (await readFile(trace, 'utf8')).trim().split('\n').map(JSON.parse);
   assert.ok(events.some(event => event.event === 'staged' && event.noMembersStarted));
   assert.ok(events.some(event => event.event === 'partial-approval-blocked'));
-  assert.ok(events.some(event => event.event === 'status-summary' && event.deliverable === (scenario === 'success')));
+  assert.ok(events.some(event => event.event === 'status-summary' && event.deliverable === (scenario !== 'failure')));
   const starts = events.filter(event => event.event === 'check-start' && event.kind === 'implementation');
   const ends = events.filter(event => event.event === 'check-end' && event.kind === 'implementation');
   assert.equal(starts.length, 2); assert.ok(Math.max(...starts.map(e => e.time)) < Math.min(...ends.map(e => e.time)), 'Coding members must overlap');
-  assert.ok(events.some(event => event.event === (scenario === 'success' ? 'delivery-complete' : 'failure-blocked')));
+  assert.ok(events.some(event => event.event === (scenario !== 'failure' ? 'delivery-complete' : 'failure-blocked')));
+  if (scenario === 'fallback') assert.ok(events.some(event => event.event === 'fallback-complete'));
   checks.push({ scenario, passed: true, realHarness: hostVersion, agentTeams: teamVersion, scriptedModel: true, concurrentWorkers: 2, traceSha256: createHash('sha256').update(await readFile(trace)).digest('hex') });
 }
 await writeFile(path.join(report, 'results.json'), JSON.stringify(checks, null, 2));

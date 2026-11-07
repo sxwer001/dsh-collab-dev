@@ -3,10 +3,10 @@
   "plugin": "1.0.1",
   "host": "0.2.1-rc.5",
   "supportedHosts": ["0.2.0-rc.2", "0.2.1-rc.5"],
-  "agentTeams": "0.1.28",
+  "agentTeams": "0.1.29",
   "mode": "shared-workspace",
   "developmentPrinciple": "Ponytail full",
   "worktrees": false,
-  "verification": "VERIFICATION.json",
-  "agentTeamsPatches": ["requirements-contract-binding", "complete-staged-plan-approval"]
+  "verification": "COMPATIBILITY.md",
+  "agentTeamsPatches": ["requirements-contract-binding", "complete-staged-plan-approval", "live-captain-model-selection"]
 }

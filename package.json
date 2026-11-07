@@ -35,6 +35,7 @@
     "README.en.md",
     "CHANGELOG.md",
     "DEVELOPMENT.md",
+    "COMPATIBILITY.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "compatibility.json",
@@ -42,7 +43,7 @@
     "scripts/patch-agent-teams.mjs"
   ],
   "dependencies": {
-    "@nanmicoder/dsh-agent-teams": "0.1.28"
+    "@nanmicoder/dsh-agent-teams": "0.1.29"
   },
   "bundleDependencies": ["@nanmicoder/dsh-agent-teams"],
   "peerDependencies": {
@@ -78,6 +79,7 @@
     "check": "node --check src/index.js && node --check src/plan.js && node --check src/status.js",
     "test": "node --test test/*.test.mjs",
     "test:runtime": "node scripts/runtime-check.mjs",
+    "test:host": "node test/host-check.mjs",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
     "prepack": "node scripts/patch-agent-teams.mjs && npm run check && npm test"
   }
