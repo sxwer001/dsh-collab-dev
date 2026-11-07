@@ -6,7 +6,7 @@ A main agent plans the work; native workers implement in parallel, followed by v
 
 ## Install
 
-Requires **DSH `0.2.0-rc.2` or `0.2.1-rc.5`**, a configured model and Node.js 22.19+ (22.x) or 24+. Includes AgentTeams 0.1.28 with the requirements snapshot and incomplete-plan approval fixes.
+Requires **DSH `0.2.0-rc.2` or `0.2.1-rc.5`**, a configured model and Node.js 22.19+ (22.x) or 24+. Includes AgentTeams 0.1.29 with the requirements snapshot and incomplete-plan approval fixes.
 
 Install the `.tgz` through Desktop's plugin manager. For a web profile:
 

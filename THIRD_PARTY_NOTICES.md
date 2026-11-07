@@ -1,6 +1,6 @@
 # Third-party notices
 
-This plugin depends on @nanmicoder/dsh-agent-teams 0.1.28, authored by 程序员阿江 (Relakkes), https://github.com/NanmiCoder/dsh-agent-teams. Team scheduling, persistent members, quality gates and the existing UI are provided by that dependency. This plugin does not claim those components as an original implementation. Runtime fixtures follow the upstream project's Harness testing approach.
+This plugin depends on @nanmicoder/dsh-agent-teams 0.1.29, authored by 程序员阿江 (Relakkes), https://github.com/NanmiCoder/dsh-agent-teams. Team scheduling, persistent members, quality gates and the existing UI are provided by that dependency. This plugin does not claim those components as an original implementation. Runtime fixtures follow the upstream project's Harness testing approach.
 
 DeepSeek Harness is the MIT-licensed host platform: https://github.com/deepseek-ai/deepseek-harness. This is an independent community extension, without endorsement from DeepSeek or the AgentTeams author.
 
@@ -30,7 +30,7 @@ SOFTWARE.
 
 # Local compatibility fixes
 
-The bundled AgentTeams 0.1.28 has two local changes:
+The bundled AgentTeams 0.1.29 has three local changes:
 
 - `bindReviewToRevision` binds a requirements verdict without an implementation
   target to its own contract and immutable architecture/plan artifacts. The original
@@ -39,6 +39,9 @@ The bundled AgentTeams 0.1.28 has two local changes:
   description before approving it, through either the native UI or tool. This
   prevents an interrupted plan upload from starting a partial team. Older teams
   without this count and other profiles retain their original behavior.
+- Member model inheritance reads `captain.model.current()` before a historical
+  request header when that Agent-owned API exists, preserving a pending model
+  selection. Older hosts keep the request-header/options fallback.
 
 The reproducible patch is `scripts/patch-agent-teams.mjs`; the original MIT notice
 above still applies. Native permissions, attempt ownership and delivery gates are

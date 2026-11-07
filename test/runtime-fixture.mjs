@@ -1,6 +1,6 @@
 // Deterministic model; real Harness, tools, members, scheduler, files and checks.
 import assert from 'node:assert/strict';
-import { LlmAdapter, ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm';
+import { LlmAdapter, LlmError, ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, appendFileSync } from 'node:fs';
@@ -8,9 +8,10 @@ import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 export const name = 'collab-runtime-fixture';
-export const inject = ['llm', 'agents', 'tools', 'sessions', 'commands', 'clientModules'];
+export const inject = ['llm', 'agents', 'tools', 'sessions', 'commands', 'clientModules', 'subagents'];
 const model = { provider: 'collab-fixture', id: 'fixture', name: 'Offline fixture', context: { contextWindow: 262144 }, defaultMaxTokens: 8192 };
 const steps = new Map(), measurements = new Map();
+const fallbackFailures = new Set();
 let rootId, phase = 'plan', rootStep = 0, planId, callSeq = 0;
 const log = data => appendFileSync(process.env.COLLAB_TRACE, JSON.stringify({ ...data, time: Date.now() }) + '\n');
 const statePath = () => join(process.cwd(), '.agent-teams', readdirSync(join(process.cwd(), '.agent-teams')).find(name => name.startsWith('collab-')), 'team.json');
@@ -34,7 +35,7 @@ function fixturePlan() {
   return value;
 }
 class FixtureAdapter extends LlmAdapter {
-  async listModels() { return [model]; }
+  async listModels() { return [model, { ...model, id: 'fallback' }]; }
   async resolveModel(provider, id) { return { ...model, provider, id }; }
   async *stream(options) {
     if (options.purpose) { yield* chunks('Fixture'); return; }
@@ -43,7 +44,12 @@ class FixtureAdapter extends LlmAdapter {
     if (failed) throw new Error('Fixture tool failed: ' + JSON.stringify(failed));
     const isRoot = options.sessionId === rootId;
     const system = options.system ?? options.messages.filter(message => message.role === 'system').flatMap(message => message.content.filter(block => block.type === 'text').map(block => block.text)).join('\n');
-    log({ event: 'request', session: options.sessionId, root: isRoot, tools: options.tools.map(tool => tool.name) });
+    log({ event: 'request', session: options.sessionId, root: isRoot, model: options.model, tools: options.tools.map(tool => tool.name) });
+    if (!isRoot && process.env.COLLAB_SCENARIO === 'fallback' && options.model === 'fixture' && !fallbackFailures.has(options.sessionId)) {
+      fallbackFailures.add(options.sessionId);
+      log({ event: 'scripted-quota', session: options.sessionId });
+      throw new LlmError('Scripted member quota exhausted', 'QUOTA');
+    }
     if (isRoot) {
       if (phase === 'plan') {
         assert.match(system, /collab_dev_plan|Collaborative development/);
@@ -129,16 +135,37 @@ export function apply(ctx) {
     await ctx.get('loader').await();
     assert.ok(ctx.clientModules.clientPath('@nanmicoder/dsh-agent-teams'), 'Upstream team UI must be discovered from the contributed host row');
     log({ event: 'client-module-registered', module: '@nanmicoder/dsh-agent-teams' });
-    const handle = await ctx.agents.create({ sessionId: 'collab-test-' + randomUUID(), meta: { cwd: process.cwd() }, agentOptions: { provider: model.provider, model: model.id } });
+    const handle = process.env.COLLAB_RESUME_CAPTAIN
+      ? await ctx.agents.resume({ resumeSessionId: process.env.COLLAB_RESUME_CAPTAIN, agentOptions: { provider: model.provider, model: model.id } })
+      : await ctx.agents.create({ sessionId: 'collab-test-' + randomUUID(), meta: { cwd: process.cwd() }, agentOptions: { provider: model.provider, model: model.id } });
     rootId = handle.agent.id;
     ctx.effect(() => () => handle.dispose());
     await handle.agent.whenIdle();
     const send = async text => { handle.agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })); await handle.agent.whenIdle(); };
-    const invoke = (name, args) => ctx.tools.execute({ name, arguments: args, agent: handle.agent,
-      signal: new AbortController().signal, callId: ToolCallId('regression-' + randomUUID()) });
+    const invoke = async (name, args) => {
+      const callId = ToolCallId('regression-' + randomUUID()), signal = new AbortController().signal;
+      if (typeof ctx.tools.executable === 'function') {
+        const batch = await ctx.tools.execute({ calls: [{ type: 'tool-call', id: callId, name, arguments: JSON.stringify(args) }], agent: handle.agent, signal });
+        return batch.results.find(item => item.callId === callId).result;
+      }
+      return ctx.tools.execute({ name, arguments: args, agent: handle.agent, signal, callId });
+    };
+    if (process.env.COLLAB_RESUME_CAPTAIN) {
+      const before = state();
+      const result = await invoke('collab_dev_status', {});
+      assert.equal(result.isError, false, JSON.stringify(result));
+      assert.equal(result.value.deliverable, process.env.COLLAB_SCENARIO !== 'failure');
+      assert.deepEqual(state().tasks, before.tasks, 'Reading recovered status must not rewrite or retry tasks');
+      assert.equal(steps.size, 0, 'Recovered status must not trigger model work');
+      assert.equal(ctx.agents.list().length, 1, 'Recovered completed/blocked state must not spawn members');
+      log({ event: 'state-restored', captain: handle.agent.id, tasks: before.tasks.length, deliverable: result.value.deliverable });
+      console.log('COLLAB_RESUME_OK');
+      ctx.get('appExit')(0);
+      return;
+    }
     const partial = await invoke('agent_teams_create', { name: 'incomplete-' + randomUUID(), profile: 'collab-dev',
       approval: 'required', description: '协作计划：8 项任务\nIncomplete-plan regression' });
-    assert.equal(partial.isError, false);
+    assert.equal(partial.isError, false, JSON.stringify(partial));
     const requirement = fixturePlan().tasks[0];
     const task = await invoke('agent_teams_create_task', { subject: requirement.subject, kind: requirement.kind,
       assignee: requirement.assignee, objective: requirement.objective, acceptance: requirement.acceptance });
@@ -175,17 +202,27 @@ export function apply(ctx) {
     if (process.env.COLLAB_SCENARIO === 'failure') {
       assert.ok(snapshot.tasks.some(task => task.kind === 'verification' && task.status === 'failed'));
       assert.equal(snapshot.tasks.find(task => task.kind === 'integration').status, 'pending');
+      const { haltTeamWork } = await import(new URL('../node_modules/@nanmicoder/dsh-agent-teams/lib/tools.js', import.meta.url));
+      await haltTeamWork({ ctx, stateRoot: join(process.cwd(), '.agent-teams'), teamId: snapshot.id, captain: handle.agent });
+      assert.equal(state().halted, true);
       log({ event: 'failure-blocked', taskStates: snapshot.tasks.map(task => ({ id: task.id, status: task.status })) });
     } else {
       assert.ok(snapshot.tasks.every(task => task.status === 'completed'), JSON.stringify(snapshot.tasks.map(task => ({ id: task.id, status: task.status, output: task.output }))));
       assert.ok(snapshot.tasks.find(task => task.kind === 'requirements').reviewedArtifacts?.length >= 2, 'Requirements verdict must bind the saved architecture and plan bytes');
+      if (process.env.COLLAB_SCENARIO === 'fallback') {
+        assert.equal(fallbackFailures.size, 4);
+        assert.ok(snapshot.members.every(member => member.fallbackActive && member.activeModel === 'fallback'));
+        assert.equal(measurements.size, 8, 'Fallback must not replay completed task checks');
+        assert.ok(snapshot.tasks.every(task => task.attempt === 1), 'Model fallback must not create task retries');
+        log({ event: 'fallback-complete', members: snapshot.members.length, uniqueTaskChecks: measurements.size });
+      }
       log({ event: 'delivery-complete', tasks: snapshot.tasks.length });
     }
     phase = 'status'; rootStep = 0;
     await send('Please inspect the current team and summarize the verified outcome.');
     const result = await invoke('collab_dev_status', {});
     assert.equal(result.isError, false);
-    assert.equal(result.value.deliverable, process.env.COLLAB_SCENARIO === 'success');
+    assert.equal(result.value.deliverable, process.env.COLLAB_SCENARIO !== 'failure');
     assert.ok(result.value.tests.some(task => task.kind === 'integration'));
     const humanStatus = await ctx.commands.execute(handle.agent, '/collab-status', [], new AbortController().signal);
     assert.equal(humanStatus.result.kind, 'success', humanStatus.result.text);

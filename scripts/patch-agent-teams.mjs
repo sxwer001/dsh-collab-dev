@@ -7,7 +7,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(root, 'package.json'));
 const manifest = await realpath(require.resolve('@nanmicoder/dsh-agent-teams/package.json'));
 if (!manifest.startsWith(root + path.sep)) throw new Error('Refusing to patch a dependency outside this project');
-if (JSON.parse(await readFile(manifest, 'utf8')).version !== '0.1.28') throw new Error('Patch only supports AgentTeams 0.1.28');
+if (JSON.parse(await readFile(manifest, 'utf8')).version !== '0.1.29') throw new Error('Patch only supports AgentTeams 0.1.29');
 const file = path.join(path.dirname(manifest), 'lib/quality-gates.js');
 const old = 'export function bindReviewToRevision(team, task, binding) {\n    const target = reviewedTargetOf(team, task);';
 const fixed = 'export function bindReviewToRevision(team, task, binding) {\n    const target = reviewedTargetOf(team, task) ?? (taskKindOf(task) === \'requirements\' ? task : undefined);';
@@ -34,3 +34,14 @@ if (!toolsSource.includes(after)) {
   await renameWithRetry(toolsFile + '.collab.tmp', toolsFile);
 }
 console.log('AgentTeams incomplete Collab-Dev plan approval guard ready for bundling.');
+
+const membersFile = path.join(path.dirname(manifest), 'lib/members.js');
+const oldSelection = 'const current = captain.session.requestHeader()?.config;';
+const currentSelection = 'const current = captain.model?.current?.() ?? captain.session.requestHeader()?.config;';
+const membersSource = (await readFile(membersFile, 'utf8')).replaceAll('\r\n', '\n');
+if (!membersSource.includes(currentSelection)) {
+  if (membersSource.split(oldSelection).length !== 2) throw new Error('Unexpected member model source; do not apply this patch blindly');
+  await writeFile(membersFile + '.collab.tmp', membersSource.replace(oldSelection, currentSelection));
+  await renameWithRetry(membersFile + '.collab.tmp', membersFile);
+}
+console.log('AgentTeams live captain model selection ready for bundling.');

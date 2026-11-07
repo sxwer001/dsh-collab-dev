@@ -29,11 +29,25 @@ Reuse the current team and its attempt_id; never duplicate the scheduler or dire
 Member tool policies deny collab_dev_plan, collab_dev_start and collab_dev_status. This version uses a shared workspace and completion audits, not a filesystem sandbox.
 Do not commit, push, publish or deploy unless that action was authorized by the user.`;
 
-async function invokeTool(ctx, exec, name, args) {
+async function invokeTool(ctx, exec, name, args, command = false) {
   exec.signal.throwIfAborted();
   const callId = ToolCallId(`collab-${randomUUID()}`);
-  const result = await ctx.tools.execute({ name, arguments: args, agent: exec.agent, signal: exec.signal,
-    callId, rootCallId: exec.rootCallId ?? callId, parent: exec.token });
+  let result;
+  if (typeof ctx.tools.executable === 'function') {
+    if (!exec.token && !command) throw new Error('模型工具转发缺少宿主执行凭据。');
+    // Preserve nesting through the host's shared policy/guard pipeline, also in PTC.
+    const { ToolExecutionPipeline } = await import('@deepseek-ai/dsh-tools/pipeline');
+    const pipeline = new ToolExecutionPipeline(ctx);
+    const prepared = await pipeline.prepare({ name, arguments: args, agent: exec.agent, signal: exec.signal,
+      callId, rootCallId: exec.rootCallId ?? callId, parent: exec.token, toolSet: exec.toolSet });
+    const dispatched = prepared.kind === 'dispatch' ? await pipeline.dispatch(prepared.exec) : prepared;
+    result = await pipeline.complete(prepared.exec, dispatched);
+    for (const context of result.additionalContexts ?? []) exec.deferContext?.(context);
+    if (result.concludesTurn) exec.concludeTurn?.();
+  } else {
+    result = await ctx.tools.execute({ name, arguments: args, agent: exec.agent, signal: exec.signal,
+      callId, rootCallId: exec.rootCallId ?? callId, parent: exec.token });
+  }
   if (result.isError) throw new Error(`${name}: ${result.error?.message ?? '执行失败'}`);
   return result.value;
 }
@@ -117,7 +131,7 @@ export function apply(ctx) {
       async handler(invocation) {
         if (invocation.rawInput.trim()) return { kind: 'error', text: '用法：/collab-status' };
         requireMainSession(invocation.agent);
-        const summary = await invokeTool(ctx, invocation, 'collab_dev_status', {});
+        const summary = await invokeTool(ctx, invocation, 'collab_dev_status', {}, true);
         return { kind: 'success', text: renderStatus(summary) };
       },
     });
